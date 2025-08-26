@@ -1,0 +1,127 @@
+UPLOAD IMAGES: 
+			
+
+Event 'Confirmar'
+	// Obtenemos ruta del almacenamiento temporal en el sistema
+	&DirectoryTempPath = Directory.TemporaryFilesPath
+//	// Recorremos los archivos subidos por el control FileUpload
+	for &FileUploadData in &UploadedFiles
+//		
+//		// Generamos la ruta completa donde se almacenara el archivo temporal
+//		// agregando el nombre del archivo cargado al sistema
+		&CurrentFilePath = &DirectoryTempPath + &FileUploadData.FullName
+//		// Asiganamos la ruta al archivo que sera creado
+		&File.Source = &CurrentFilePath
+//		// Se hace el encodeado del contenido a Base 64 para procesarlo
+		&Base64Encoded = &FileUploadData.File.ToBase64String()
+//		// Creamos el archivo por merdio del string encodeado que se
+//		// almacenara el la ruta que especifica &CurrentFilePath
+		&File.FromBase64String(&Base64Encoded)
+//		
+//		// Mostramos resultados de la operacion (código que se eliminara)
+		//&ruta = &Httprequest.BaseUrl
+		&Ruta = "C:\Program Files (x86)\Apache Software Foundation\Tomcat 8.5\webapps\GPWEBSITE2024JavaEnvironment\static\images"
+		//"C:\Program Files (x86)\Apache Software Foundation\Tomcat 8.5\webapps\FilesPracticeGx17JavaEnvironment\static\Saves"
+//		msg(&Ruta)
+		&NewPath = &Ruta+&File.GetName()
+//		msg(&NewPath)
+//		msg(&File.ErrCode.ToString())
+//		msg(&File.ErrDescription)
+//		msg(&File.GetAbsoluteName())
+		msg(&File.GetName())
+//		msg(&File.GetPath())
+//		msg(&File.GetURI())
+//		
+//		// Preguntamos si el crear archivo se realizo con exito
+		if &File.ErrCode = 0
+			&File.Copy(&NewPath)
+			if &File.ErrCode=0
+				&websession.Set('nombreImagen',&File.GetName())
+				//&archivo=&File.GetName()
+				return // o exit => para cerrar el popup y devolver el nombre del archivo
+				endif
+		endif
+	endfor	
+Endevent
+
+
+ESTO ES CON LA CARGA DE LAS LICITACIONES 
+
+Event 'Confirmar'
+	java [!&ruta!]=httpContext.getDefaultPath();
+	// Obtenemos ruta del almacenamiento temporal en el sistema
+	&DirectoryTempPath = Directory.TemporaryFilesPath
+	msg(&DirectoryTempPath)
+	// Recorremos los archivos subidos por el control FileUpload
+	for &FileUploadData in &UploadedFiles	
+		// Generamos la ruta completa donde se almacenara el archivo temporal
+		// agregando el nombre del archivo cargado al sistema
+		&CurrentFilePath = &DirectoryTempPath + &File.Separator+&FileUploadData.FullName
+		// Asiganamos la ruta al archivo que sera creado
+		&File.Source = &CurrentFilePath
+		// Se hace el encodeado del contenido a Base 64 para procesarlo
+		&Base64Encoded = &FileUploadData.File.ToBase64String()
+		// Creamos el archivo por merdio del string encodeado que se
+		// almacenara el la ruta que especifica &CurrentFilePath
+		&File.FromBase64String(&Base64Encoded)		
+		// Mostramos resultados de la operacion (código que se eliminara)
+		//&ruta = &Httprequest.BaseUrl
+		
+		&Ruta = &ruta+&File.Separator+"static"+&File.Separator+"Saves"+&File.Separator+"licitaciones"+&File.Separator
+		//"C:\Program Files (x86)\Apache Software Foundation\Tomcat 8.5\webapps\FilesPracticeGx17JavaEnvironment\static\Saves"
+		//msg(&Ruta)
+		&NewPath = &Ruta+&File.GetName()
+		msg(&NewPath)
+		// Preguntamos si el crear archivo se realizo con exito
+		//if &File.ErrCode = 0
+		&File.Copy(&NewPath)
+		if &File.ErrCode=0
+			&archivo=&File.GetName()
+			msg("archivo copiado" + &archivo)
+		endif
+
+		&ban = UploadLicitacion.Udp(&idLic)
+		if &ban 
+			msg("Licitacion cargada")
+			WWLicitacion.Call()
+		else 
+			msg("No se pudo cargar el archivo")
+		endif
+	endfor	 
+Endevent
+
+PROCEDIMIENTO: UPLOADLICITACION 
+
+&ban = false
+	java [!&pathname!]=httpContext.getDefaultPath();
+	//&pathname="C:/Program Files (x86)/Apache Software Foundation/Tomcat 8.5/webapps/FilesPracticeGx17JavaEnvironment/static/Saves"
+	&pathname = &pathname+&File.Separator+"static"+&File.Separator+"Saves"+&File.Separator+"licitaciones"
+	&directorio.Source=&pathname
+	if &directorio.Exists()
+		for &File in &directorio.GetFiles() 
+			&Licitacion.Load(&idLic)
+			&Existe = true
+			for each Licitacion
+				where LicitacionURL = &File.GetName() //si ya existe no lo guardara
+				&Existe = false
+			endfor
+			if &Existe
+				//&Licitacion.LicitacionNombre = &File.GetName()
+				//&folder = "/GPWEBSITE2024JavaEnvironment/static/Saves/licitaciones/"+&File.GetName()
+				&folder = &File.GetName()
+				&Licitacion.LicitacionURL = &folder
+				&Licitacion.LicitacionFechaCarga = ServerDate()
+				&DateApertura = &Licitacion.LicitacionFechaApertura 
+				&Licitacion.LicitacionFechaBaja = &DateApertura.AddDays(1) //Se desactiva un dia posterior a la apertura
+				&Licitacion.Save()
+			endif
+		endfor
+		&ban = true
+	endif
+	if &ban
+		commit
+	else 
+		rollback
+	endif
+
+

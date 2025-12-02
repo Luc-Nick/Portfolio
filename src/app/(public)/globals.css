@@ -1,6 +1,20 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+  themes: nord --default , night --prefersdark;
+}
 
+@theme {
+  --bg-hero-spotlight:
+    radial-gradient(circle at top,
+      rgba(56, 189, 248, 0.12),
+      transparent 70%
+    );
+}
+
+
+/* 
+
+default next styles
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -29,3 +43,4 @@ body {
   justify-content: center;
   align-items: center;
 }
+ */
